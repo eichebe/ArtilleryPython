@@ -1,12 +1,118 @@
 config:
-  target: 'http://localhost:3000'
+  target: "http://localhost:3000" # Ziel-URL des NestJS-Servers
   phases:
-    - duration: 60
-      arrivalRate: 10
-  plugins:
-    cloud:
-      apiKey: 'a9_zQjpJafHeFguNo_CRSgquYAD9qjUtb0A'
+    - duration: 60       # Testdauer in Sekunden
+      arrivalRate: 10    # Anzahl der neuen Nutzer pro Sekunde
+      rampTo: 50         # Steigerung auf 50 Nutzer pro Sekunde
+
+  # Konfiguration für HTTP-Anfragen
+  http:
+    timeout: 10          # Timeout in Sekunden
+    headers:
+      Content-Type: "application/json"
+
 scenarios:
-  - flow:
-      - get:
+  # 1. Szenario: Produkte erstellen und abrufen
+  - name: "Produkt-CRUD-Tests"
+    flow:
+      - post:
           url: "/products"
+          json:
+            name: "Testprodukt {{ uuid }}"
+            description: "Beschreibung des Testprodukts {{ uuid }}"
+            price: 19.99
+            stock: 100
+          capture:
+            - json: "$.id"
+              as: productId
+
+      - get:
+          url: "/products/{{ productId }}"
+          expect:
+            - statusCode: 200
+            - contentType: "application/json"
+
+      - put:
+          url: "/products/{{ productId }}"
+          json:
+            name: "Aktualisiertes Testprodukt {{ uuid }}"
+            description: "Aktualisierte Beschreibung des Testprodukts {{ uuid }}"
+            price: 29.99
+            stock: 150
+          expect:
+            - statusCode: 200
+
+      - delete:
+          url: "/products/{{ productId }}"
+          expect:
+            - statusCode: 200
+
+  # 2. Szenario: Kunden erstellen und abrufen
+  - name: "Kunden-CRUD-Tests"
+    flow:
+      - post:
+          url: "/customers"
+          json:
+            name: "Kunde {{ uuid }}"
+            email: "kunde{{ uuid }}@example.com"
+            phone: "0123456789"
+          capture:
+            - json: "$.id"
+              as: customerId
+
+      - get:
+          url: "/customers/{{ customerId }}"
+          expect:
+            - statusCode: 200
+            - contentType: "application/json"
+
+      - put:
+          url: "/customers/{{ customerId }}"
+          json:
+            name: "Aktualisierter Kunde {{ uuid }}"
+            email: "aktualisierter_kunde{{ uuid }}@example.com"
+            phone: "0987654321"
+          expect:
+            - statusCode: 200
+
+      - delete:
+          url: "/customers/{{ customerId }}"
+          expect:
+            - statusCode: 200
+
+  # 3. Szenario: Bestellung erstellen und abrufen
+  - name: "Bestellung-CRUD-Tests"
+    flow:
+      - post:
+          url: "/orders"
+          json:
+            customerId: "{{ customerId }}"
+            items:
+              - productId: "{{ productId }}"
+                quantity: 2
+                price: 19.99
+          capture:
+            - json: "$.id"
+              as: orderId
+
+      - get:
+          url: "/orders/{{ orderId }}"
+          expect:
+            - statusCode: 200
+            - contentType: "application/json"
+
+      - put:
+          url: "/orders/{{ orderId }}"
+          json:
+            customerId: "{{ customerId }}"
+            items:
+              - productId: "{{ productId }}"
+                quantity: 3
+                price: 29.99
+          expect:
+            - statusCode: 200
+
+      - delete:
+          url: "/orders/{{ orderId }}"
+          expect:
+            - statusCode: 200
