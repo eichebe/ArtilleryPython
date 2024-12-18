@@ -10,6 +10,11 @@ class ProductBase(BaseModel):
 class ProductCreate(ProductBase):
     pass
 
+class ProductUpdate(BaseModel):
+    name: Optional[str]
+    price: Optional[float]
+    stock: Optional[int]
+
 class Product(ProductBase):
     id: int
     
@@ -41,9 +46,10 @@ class OrderCreate(BaseModel):
     customer_id: int
     items: List[OrderItemBase]
 
-class Order(OrderCreate):
+class OrderWithDetails(OrderCreate):
     id: int
     total_price: float
+    items: List[OrderItemBase]
 
     class Config:
         orm_mode = True
