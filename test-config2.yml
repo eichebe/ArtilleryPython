@@ -1,90 +1,293 @@
 config:
-  target: 'http://localhost:8000'  # Replace with your FastAPI app URL
+  target: "http://localhost:8000" # Base URL of your FastAPI app
   phases:
-    - duration: 60  # Duration of the test
-      arrivalRate: 10  # Requests per second
-    - duration: 180  # Duration of the second phase
-      arrivalRate: 20  # Increased requests per second
-    - duration: 120
-      arrivalRate: 50
+    - duration: 120       # Test duration in seconds
+      arrivalRate: 20     # Start with 20 users per second
+      rampTo: 50          # Gradually increase to 50 users per second
+  http:
+    timeout: 10           # Timeout in seconds
+    headers:
+      Content-Type: "application/json"
 
 scenarios:
-  # Scenario 1: Create a product and retrieve it
-  - name: "Create and Retrieve Products"
+  - name: "Category Endpoints"
     flow:
       - post:
-          url: '/products'
+          url: "/categories"
+          json:
+            name: "Category {{ $randomString(5) }}"
+          capture:
+            - json: "$.id"
+              as: categoryId
+          validate:
+            - statusCode: 200
+      - get:
+          url: "/categories"
+          validate:
+            - statusCode: 200
+      - delete:
+          url: "/categories/{{ categoryId }}"
+          validate:
+            - statusCode: 200
+  - name: Order Report Test
+    flow:
+      # Step 1: Create a customer
+      - post:
+          url: "/customers"
+          json:
+            name: "Customer {{ $randomString(8) }}"
+            email: "customer{{ $randomNumber(100, 999) }}@example.com"
+            phone: "5551234{{ $randomNumber(1000, 9999) }}"
+          capture:
+            - json: "$.id"
+              as: customerId
+          validate:
+            - statusCode: 200
+
+      # Step 2: Create a category
+      - post:
+          url: "/categories"
+          json:
+            name: "Category {{ $randomString(5) }}"
+          capture:
+            - json: "$.id"
+              as: categoryId
+          validate:
+            - statusCode: 200
+
+      # Step 3: Create a product
+      - post:
+          url: "/products"
+          json:
+            name: "Product {{ $randomString(6) }}"
+            description: "Product description {{ $randomString(6) }}"
+            price: "{{ $randomNumber(20, 100) }}"
+            stock: "{{ $randomNumber(50, 200) }}"
+            category_id: "{{ categoryId }}"
+          capture:
+            - json: "$.id"
+              as: productId
+          validate:
+            - statusCode: 200
+
+      # Step 4: Create an order for the customer
+      - post:
+          url: "/orders"
+          json:
+            customer_id: "{{ customerId }}"
+            items:
+              - product_id: "{{ productId }}"
+                quantity: "{{ $randomNumber(1, 5) }}"
+                price: "{{ $randomNumber(20, 50) }}"
+          validate:
+            - statusCode: 200
+
+      # Step 5: Generate order report for the customer
+      - get:
+          url: "/orders/report/{{ customerId }}"
+          validate:
+            - statusCode: 200
+            - contains: "orders"
+  - name: "Product CRUD Test"
+    flow:
+      # Step 1: Create a product
+      - post:
+          url: "/products"
+          json:
+            name: "Test Product {{ $randomString(6) }}"
+            description: "This is a test product"
+            price: 100.99
+            stock: 50
+            category_id: "{{ categoryId }}"
+          capture:
+            - json: "$.id" # Capture the created product ID
+              as: productId
+          validate:
+            - statusCode: 200
+            - contains: "Test Product"
+
+      # Step 2: Fetch all products
+      - get:
+          url: "/products"
+          validate:
+            - statusCode: 200
+            - contains: "Test Product"
+
+      # Step 3: Fetch the created product by ID
+      - get:
+          url: "/products/{{ productId }}"
+          validate:
+            - statusCode: 200
+            - contains: "Test Product"
+
+      # Step 4: Update the created product
+      - put:
+          url: "/products/{{ productId }}"
+          json:
+            name: "Updated Test Product"
+            description: "This is an updated test product"
+            price: 120.49
+            stock: 45
+            category_id: "{{ categoryId }}"
+          validate:
+            - statusCode: 200
+            - contains: "Updated Test Product"
+
+      # Step 5: Fetch the updated product
+      - get:
+          url: "/products/{{ productId }}"
+          validate:
+            - statusCode: 200
+            - contains: "Updated Test Product"
+
+      # Step 6: Delete the product
+      - delete:
+          url: "/products/{{ productId }}"
+          validate:
+            - statusCode: 200
+            - contains: "deleted"
+
+      # Step 7: Validate product deletion
+      - get:
+          url: "/products/{{ productId }}"
+          validate:
+            - statusCode: 404
+            - contains: "Product not found"
+
+  - name: "Customer Endpoints"
+    flow:
+      - post:
+          url: "/customers"
+          json:
+            name: "Customer {{ $randomString(8) }}"
+            email: "customer{{ $randomNumber(100, 999) }}@example.com"
+            phone: "5551234{{ $randomNumber(1000, 9999) }}"
+          capture:
+            - json: "$.id"
+              as: customerId
+          validate:
+            - statusCode: 200
+      - get:
+          url: "/customers"
+          validate:
+            - statusCode: 200
+      - delete:
+          url: "/customers/{{ customerId }}"
+          validate:
+            - statusCode: 200
+
+  - name: "Product CRUD Test"
+    flow:
+      # Step 1: Create a product
+      - post:
+          url: "/products"
           json:
             name: "Test Product"
-            price: 100.0
+            description: "This is a test product"
+            price: 100.99
             stock: 50
-      - get:
-          url: '/products'
-    
-  # Scenario 2: Create a customer and retrieve them
-  - name: "Create and Retrieve Customers"
-    flow:
-      - post:
-          url: '/customers'
-          json:
-            name: "Test Customer"
-            email: "customer@example.com"
-            phone: "123-456-7890"
-      - get:
-          url: '/customers'
-    
-  # Scenario 3: Create an order and retrieve it
-  - name: "Create and Retrieve Orders"
-    flow:
-      - post:
-          url: '/orders'
-          json:
-            customer_id: 1  # Use a valid customer ID
-            items:
-              - product_id: 1  # Use a valid product ID
-                quantity: 2
-                price: 100.0
-      - get:
-          url: '/orders/1'  # Retrieve the order by its ID
-    
-  # Scenario 4: Update a product and retrieve it
-  - name: "Update Product and Retrieve"
-    flow:
-      - put:
-          url: '/products/1'  # Replace 1 with an existing product ID
-          json:
-            name: "Updated Product"
-            price: 150.0
-            stock: 60
-      - get:
-          url: '/products/1'
+            category_id: 1
+          capture:
+            - json: "$.id" # Capture the created product ID
+              as: productId
+          validate:
+            - statusCode: 200
+            - contains: "Test Product"
 
-  # Scenario 5: Update a customer and retrieve it
-  - name: "Update Customer and Retrieve"
-    flow:
-      - put:
-          url: '/customers/1'  # Replace 1 with an existing customer ID
-          json:
-            name: "Updated Customer"
-            email: "updatedcustomer@example.com"
-            phone: "987-654-3210"
+      # Step 2: Fetch all products
       - get:
-          url: '/customers/1'
+          url: "/products"
+          validate:
+            - statusCode: 200
+            - contains: "Test Product"
 
-  # Scenario 6: Delete a product
-  - name: "Delete Product"
-    flow:
+      # Step 3: Fetch the created product by ID
+      - get:
+          url: "/products/{{ productId }}"
+          validate:
+            - statusCode: 200
+            - contains: "Test Product"
+
+      # Step 4: Update the created product
+      - put:
+          url: "/products/{{ productId }}"
+          json:
+            name: "Updated Test Product"
+            description: "This is an updated test product"
+            price: 120.49
+            stock: 45
+            category_id: 1
+          validate:
+            - statusCode: 200
+            - contains: "Updated Test Product"
+
+      # Step 5: Fetch the updated product
+      - get:
+          url: "/products/{{ productId }}"
+          validate:
+            - statusCode: 200
+            - contains: "Updated Test Product"
+
+      # Step 6: Delete the product
       - delete:
-          url: '/products/1'  # Replace 1 with an existing product ID
-    
-  # Scenario 7: Delete a customer
-  - name: "Delete Customer"
+          url: "/products/{{ productId }}"
+          validate:
+            - statusCode: 200
+            - contains: "deleted"
+
+      # Step 7: Validate product deletion
+      - get:
+          url: "/products/{{ productId }}"
+          validate:
+            - statusCode: 404
+            - contains: "Product not found"
+
+  - name: Bulk Order Test
     flow:
-      - delete:
-          url: '/customers/1'  # Replace 1 with an existing customer ID
-    
-  # Scenario 8: Delete an order
-  - name: "Delete Order"
-    flow:
-      - delete:
-          url: '/orders/1'  # Replace 1 with an existing order ID
+      # Step 1: Create categories, products, and customers to prepare for bulk orders
+      - post:
+          url: "/categories"
+          json:
+            name: "Category {{ $randomString(5) }}"
+          capture:
+            - json: "$.id"
+              as: categoryId
+      - post:
+          url: "/products"
+          json:
+            name: "Product {{ $randomString(6) }}"
+            description: "Product description {{ $randomString(6) }}"
+            price: "{{ $randomNumber(20, 100) }}"
+            stock: "{{ $randomNumber(50, 200) }}"
+            category_id: "{{ categoryId }}"
+          capture:
+            - json: "$.id"
+              as: productId
+      - post:
+          url: "/customers"
+          json:
+            name: "Customer {{ $randomString(8) }}"
+            email: "customer{{ $randomNumber(1000, 9999) }}@example.com"
+            phone: "5551234{{ $randomNumber(1000, 9999) }}"
+          capture:
+            - json: "$.id"
+              as: customerId
+
+      # Step 2: Submit bulk orders
+      - post:
+          url: "/orders/bulk"
+          json:
+            orders:
+              - customer_id: "{{ customerId }}"
+                items:
+                  - product_id: "{{ productId }}"
+                    quantity: "{{ $randomNumber(1, 5) }}"
+                    price: "{{ $randomNumber(20, 50) }}"
+              - customer_id: "{{ customerId }}"
+                items:
+                  - product_id: "{{ productId }}"
+                    quantity: "{{ $randomNumber(2, 10) }}"
+                    price: "{{ $randomNumber(30, 100) }}"
+          validate:
+            - statusCode: 200
+            - contains: "order_id"

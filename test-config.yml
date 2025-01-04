@@ -1,5 +1,5 @@
 config:
-  target: "http://localhost:3000" # Ziel-URL des NestJS-Servers
+  target: "http://localhost:8000" # Ziel-URL des NestJS-Servers
   phases:
     - duration: 60       # Testdauer in Sekunden
       arrivalRate: 10    # Anzahl der neuen Nutzer pro Sekunde

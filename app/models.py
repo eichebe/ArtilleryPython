@@ -4,13 +4,25 @@ from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 
+# Category model
+class Category(Base):
+    __tablename__ = "categories"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True)
+
+    products = relationship("Product", back_populates="category")
+
 # Product model
 class Product(Base):
     __tablename__ = "products"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
+    description = Column(String)  # Added description field
     price = Column(Float)
     stock = Column(Integer)
+    category_id = Column(Integer, ForeignKey("categories.id"))
+
+    category = relationship("Category", back_populates="products")
 
 # Customer model
 class Customer(Base):
@@ -19,6 +31,8 @@ class Customer(Base):
     name = Column(String, index=True)
     email = Column(String, unique=True, index=True)
     phone = Column(String)
+
+    orders = relationship("Order", back_populates="customer")
 
 # Order model
 class Order(Base):
@@ -30,7 +44,7 @@ class Order(Base):
     customer = relationship("Customer", back_populates="orders")
     items = relationship("OrderItem", back_populates="order")
 
-# OrderItem model to associate products with orders
+# OrderItem model
 class OrderItem(Base):
     __tablename__ = "order_items"
     id = Column(Integer, primary_key=True, index=True)
