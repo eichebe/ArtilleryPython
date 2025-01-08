@@ -47,6 +47,14 @@ def create_category(category: schemas.CategoryCreate, db: Session = Depends(get_
 def read_categories(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return services.get_categories(db=db, skip=skip, limit=limit)
 
+@app.put("/categories/{category_id}", response_model=schemas.Category)
+def update_category_route(
+    category_id: int, 
+    category: schemas.CategoryUpdate, 
+    db: Session = Depends(get_db)
+):
+    return services.update_category(db=db, category_id=category_id, category=category)
+
 @app.delete("/categories/{category_id}")
 def delete_category(category_id: int, db: Session = Depends(get_db)):
     return services.delete_category(db=db, category_id=category_id)
@@ -55,6 +63,10 @@ def delete_category(category_id: int, db: Session = Depends(get_db)):
 @app.post("/products", response_model=schemas.Product)
 def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db)):
     return services.create_product(db=db, product=product)
+
+@app.get("/products/{product_id}", response_model=schemas.Product)
+def read_product(product_id: int, db: Session = Depends(get_db)):
+    return services.get_product_by_id(db, product_id)
 
 @app.put("/products/{product_id}", response_model=schemas.Product)
 def update_product_route(
@@ -88,6 +100,10 @@ def create_customer(customer: schemas.CustomerCreate, db: Session = Depends(get_
 def read_customers(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return services.get_customers(db=db, skip=skip, limit=limit)
 
+@app.get("/customers/{customer_id}", response_model=schemas.Customer)
+def read_customer(customer_id: int, db: Session = Depends(get_db)):
+    return services.get_customer_by_id(db, customer_id)
+
 @app.delete("/customers/{customer_id}")
 def delete_customer(customer_id: int, db: Session = Depends(get_db)):
     return services.delete_customer(db=db, customer_id=customer_id)
@@ -97,6 +113,10 @@ def delete_customer(customer_id: int, db: Session = Depends(get_db)):
 def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
     return services.create_order(db=db, order=order)
 
+@app.get("/orders/{order_id}", response_model=schemas.Order)
+def read_order(order_id: int, db: Session = Depends(get_db)):
+    return services.get_order_by_id(db, order_id)
+
 @app.get("/orders/detailed")
 def read_orders_with_details(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return services.get_orders_with_details(db=db, skip=skip, limit=limit)
@@ -105,17 +125,10 @@ def read_orders_with_details(skip: int = 0, limit: int = 100, db: Session = Depe
 def delete_order(order_id: int, db: Session = Depends(get_db)):
     return services.delete_order(db=db, order_id=order_id)
 
+@app.put("/orders/{order_id}", response_model=schemas.Order)
+def update_order_route(order_id: int, order: schemas.OrderUpdate, db: Session = Depends(get_db)):
+    return services.update_order(db=db, order_id=order_id, order=order)
+
 @app.get("/orders/report/{customer_id}")
 def generate_order_report(customer_id: int, db: Session = Depends(get_db)):
     return services.generate_customer_order_report(db=db, customer_id=customer_id)
-
-@app.post("/orders/bulk", response_model=List[dict])
-def create_bulk_order(
-    bulk_order: schemas.BulkOrderCreate, 
-    db: Session = Depends(get_db)
-):
-    return services.create_bulk_orders(db=db, bulk_orders=bulk_order.orders)
-
-@app.post("/test")
-def test_post():
-    return {"message": "POST request works!"}

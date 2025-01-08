@@ -1,6 +1,5 @@
 from sqlalchemy import Column, Integer, String, Float, ForeignKey
-from sqlalchemy.orm import relationship
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import relationship, declarative_base
 
 Base = declarative_base()
 
@@ -10,19 +9,20 @@ class Category(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
 
-    products = relationship("Product", back_populates="category")
+    products = relationship("Product", back_populates="category", cascade="all, delete")
 
 # Product model
 class Product(Base):
     __tablename__ = "products"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
-    description = Column(String)  # Added description field
+    description = Column(String)
     price = Column(Float)
     stock = Column(Integer)
-    category_id = Column(Integer, ForeignKey("categories.id"))
+    category_id = Column(Integer, ForeignKey("categories.id", ondelete="CASCADE"))
 
     category = relationship("Category", back_populates="products")
+    order_items = relationship("OrderItem", back_populates="product", cascade="all, delete")
 
 # Customer model
 class Customer(Base):
@@ -32,7 +32,7 @@ class Customer(Base):
     email = Column(String, unique=True, index=True)
     phone = Column(String)
 
-    orders = relationship("Order", back_populates="customer")
+    orders = relationship("Order", back_populates="customer", cascade="all, delete")
 
 # Order model
 class Order(Base):
@@ -40,9 +40,9 @@ class Order(Base):
     id = Column(Integer, primary_key=True, index=True)
     customer_id = Column(Integer, ForeignKey("customers.id"))
     total_price = Column(Float)
-    
+
     customer = relationship("Customer", back_populates="orders")
-    items = relationship("OrderItem", back_populates="order")
+    items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
 
 # OrderItem model
 class OrderItem(Base):
@@ -52,6 +52,6 @@ class OrderItem(Base):
     product_id = Column(Integer, ForeignKey("products.id"))
     quantity = Column(Integer)
     price = Column(Float)
-    
+
     order = relationship("Order", back_populates="items")
     product = relationship("Product")

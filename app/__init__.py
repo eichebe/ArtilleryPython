@@ -27,5 +27,4 @@ from .services import (
     get_products,
     get_customers,
     get_orders_with_details,
-    generate_customer_order_report,
 )

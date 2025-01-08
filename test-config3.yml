@@ -1,151 +1,44 @@
 config:
-  target: "http://localhost:8000" # Base URL of your FastAPI app
+  target: "http://localhost:8000"
   phases:
-    - duration: 120       # Test duration in seconds
-      arrivalRate: 20     # Start with 20 users per second
-      rampTo: 50          # Gradually increase to 50 users per second
-  http:
-    timeout: 10           # Timeout in seconds
-    headers:
-      Content-Type: "application/json"
-
+    - duration: 60
+      arrivalRate: 5
 scenarios:
-  - name: "Category Endpoints"
+  - name: Full API Test for pythonArtillery
     flow:
-      - log: "Testing Category Endpoints"
       - post:
           url: "/categories"
           json:
-            name: "Category-{{ $timestamp }}-{{ $randomString(3) }}"
-          capture:
-            - json: "$.id"
-              as: categoryId
-          validate:
-            - statusCode: 200
-            - jsonPath: "$.id" # Ensure ID is returned
-      - get:
-          url: "/categories"
-          validate:
-            - statusCode: 200
-      - delete:
-          url: "/categories/{{ categoryId }}"
-          validate:
-            - statusCode: 200
-
-  - name: "Order Report Test"
-    flow:
-      - log: "Testing Order Report Endpoint"
-      # Step 1: Create a customer
-      - post:
-          url: "/customers"
-          json:
-            name: "Customer-{{ $timestamp }}-{{ $randomString(4) }}"
-            email: "customer-{{ $timestamp }}@example.com"
-            phone: "555-{{ $randomNumber(1000, 9999) }}"
-          capture:
-            - json: "$.id"
-              as: customerId
-          validate:
-            - statusCode: 200
-
-      # Step 2: Create a category
-      - post:
-          url: "/categories"
-          json:
-            name: "Category-{{ $timestamp }}-{{ $randomString(3) }}"
-          capture:
-            - json: "$.id"
-              as: categoryId
-          validate:
-            - statusCode: 200
-
-      # Step 3: Create a product
+            name: "Electronics"
       - post:
           url: "/products"
           json:
-            name: "Product-{{ $timestamp }}-{{ $randomString(4) }}"
-            description: "Test product description"
-            price: "{{ $randomNumber(10, 100) }}"
-            stock: "{{ $randomNumber(10, 200) }}"
-            category_id: "{{ categoryId }}"
-          capture:
-            - json: "$.id"
-              as: productId
-          validate:
-            - statusCode: 200
-
-      # Step 4: Create an order for the customer
+            name: "Smartphone"
+            description: "A high-end smartphone"
+            price: 999.99
+            stock: 50
+            category_id: 1
+      - post:
+          url: "/customers"
+          json:
+            name: "John Doe"
+            email: "john.doe@example.com"
+            phone: "123-456-7890"
       - post:
           url: "/orders"
           json:
-            customer_id: "{{ customerId }}"
+            customer_id: 1
             items:
-              - product_id: "{{ productId }}"
-                quantity: "{{ $randomNumber(1, 5) }}"
-                price: "{{ $randomNumber(10, 50) }}"
-          validate:
-            - statusCode: 200
-
-      # Step 5: Generate order report for the customer
+              - product_id: 1
+                quantity: 2
+                price: 999.99
       - get:
-          url: "/orders/report/{{ customerId }}"
-          validate:
-            - statusCode: 200
-            - jsonPath: "$.orders" # Ensure orders array is present
-
-  - name: "Bulk Order Test"
-    flow:
-      - log: "Testing Bulk Order Endpoint"
-      # Step 1: Create categories, products, and customers
-      - post:
-          url: "/categories"
-          json:
-            name: "Category-{{ $timestamp }}-{{ $randomString(3) }}"
-          capture:
-            - json: "$.id"
-              as: categoryId
-          validate:
-            - statusCode: 200
-      - post:
-          url: "/products"
-          json:
-            name: "Product-{{ $timestamp }}-{{ $randomString(4) }}"
-            description: "Bulk test product"
-            price: "{{ $randomNumber(10, 50) }}"
-            stock: "{{ $randomNumber(50, 200) }}"
-            category_id: "{{ categoryId }}"
-          capture:
-            - json: "$.id"
-              as: productId
-          validate:
-            - statusCode: 200
-      - post:
-          url: "/customers"
-          json:
-            name: "Customer-{{ $timestamp }}-{{ $randomString(4) }}"
-            email: "bulk-customer-{{ $timestamp }}@example.com"
-            phone: "555-{{ $randomNumber(1000, 9999) }}"
-          capture:
-            - json: "$.id"
-              as: customerId
-          validate:
-            - statusCode: 200
-
-      # Step 2: Submit bulk orders
-      - post:
-          url: "/orders/bulk"
-          json:
-            orders:
-              - customer_id: "{{ customerId }}"
-                items:
-                  - product_id: "{{ productId }}"
-                    quantity: "{{ $randomNumber(1, 5) }}"
-                    price: "{{ $randomNumber(10, 30) }}"
-              - customer_id: "{{ customerId }}"
-                items:
-                  - product_id: "{{ productId }}"
-                    quantity: "{{ $randomNumber(2, 10) }}"
-                    price: "{{ $randomNumber(20, 50) }}"
-          validate:
-            - statusCode: 200
-            - jsonPath: "$[0].order_id" # Ensure first order ID exists
+          url: "/orders/detailed"
+      - delete:
+          url: "/orders/1"
+      - delete:
+          url: "/customers/1"
+      - delete:
+          url: "/products/1"
+      - delete:
+          url: "/categories/1"

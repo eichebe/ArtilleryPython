@@ -1,18 +1,15 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
 
-# Category schema
+# Category schemas
 class CategoryBase(BaseModel):
-    name: str
+    name: str = Field(..., min_length=1, max_length=255)
 
 class CategoryCreate(CategoryBase):
     pass
 
 class CategoryUpdate(BaseModel):
-    name: Optional[str]
-
-    class Config:
-        from_attributes = True
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
 
 class Category(CategoryBase):
     id: int
@@ -20,12 +17,12 @@ class Category(CategoryBase):
     class Config:
         from_attributes = True
 
-# Product schema
+# Product schemas
 class ProductBase(BaseModel):
-    name: str
-    description: Optional[str]  # Fixed schema to match the model
-    price: float
-    stock: int
+    name: str = Field(..., min_length=1, max_length=255)
+    description: Optional[str]
+    price: float = Field(..., ge=0)
+    stock: int = Field(..., ge=0)
     category_id: int
 
 class ProductCreate(ProductBase):
@@ -47,18 +44,18 @@ class Product(ProductBase):
     class Config:
         from_attributes = True
 
-# Customer schema
+# Customer schemas
 class CustomerBase(BaseModel):
     name: str
-    email: str
-    phone: str
+    email: EmailStr
+    phone: str = Field(..., min_length=7, max_length=20)
 
 class CustomerCreate(CustomerBase):
     pass
 
 class CustomerUpdate(BaseModel):
     name: Optional[str]
-    email: Optional[str]
+    email: Optional[EmailStr]
     phone: Optional[str]
 
     class Config:
@@ -70,19 +67,19 @@ class Customer(CustomerBase):
     class Config:
         from_attributes = True
 
-# Order Item schema
+#OrderItems Scema
 class OrderItemBase(BaseModel):
     product_id: int
-    quantity: int
-    price: float
+    quantity: int = Field(..., gt=0)
+    price: float = Field(..., ge=0)
 
 class OrderItemCreate(OrderItemBase):
     pass
 
 class OrderItemUpdate(BaseModel):
     product_id: Optional[int]
-    quantity: Optional[int]
-    price: Optional[float]
+    quantity: Optional[int] = Field(None, gt=0)
+    price: Optional[float] = Field(None, ge=0)
 
     class Config:
         from_attributes = True
@@ -93,7 +90,7 @@ class OrderItem(OrderItemBase):
     class Config:
         from_attributes = True
 
-# Order schema
+#Order Schema
 class OrderBase(BaseModel):
     customer_id: int
 
@@ -108,20 +105,10 @@ class OrderUpdate(BaseModel):
     class Config:
         from_attributes = True
 
-class OrderWithDetails(OrderBase):
+class Order(OrderBase):
     id: int
     total_price: float
     items: List[OrderItem]
 
     class Config:
         from_attributes = True
-
-class Order(OrderBase):
-    id: int
-    total_price: float
-
-    class Config:
-        from_attributes = True
-
-class BulkOrderCreate(BaseModel):
-    orders: List[OrderCreate]

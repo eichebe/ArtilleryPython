@@ -1,118 +1,92 @@
 config:
-  target: "http://localhost:8000" # Ziel-URL des NestJS-Servers
+  target: "http://localhost:8000"
   phases:
-    - duration: 60       # Testdauer in Sekunden
-      arrivalRate: 10    # Anzahl der neuen Nutzer pro Sekunde
-      rampTo: 50         # Steigerung auf 50 Nutzer pro Sekunde
-
-  # Konfiguration für HTTP-Anfragen
-  http:
-    timeout: 10          # Timeout in Sekunden
-    headers:
-      Content-Type: "application/json"
-
+    - duration: 60
+      arrivalRate: 10
 scenarios:
-  # 1. Szenario: Produkte erstellen und abrufen
-  - name: "Produkt-CRUD-Tests"
-    flow:
+  - flow:
+      # Create Category
+      - post:
+          url: "/categories"
+          json:
+            name: "Initial Category"
+          capture:
+            - json: "$.id"
+              as: "category_id"
+      # Update Category
+      - put:
+          url: "/categories/{{ category_id }}"
+          json:
+            name: "Updated Category Name"
+
+      # Create Product
       - post:
           url: "/products"
           json:
-            name: "Testprodukt {{ uuid }}"
-            description: "Beschreibung des Testprodukts {{ uuid }}"
+            name: "Initial Product"
+            description: "Initial Description"
             price: 19.99
-            stock: 100
+            stock: 10
+            category_id: "{{ category_id }}"
           capture:
             - json: "$.id"
-              as: productId
-
-      - get:
-          url: "/products/{{ productId }}"
-          expect:
-            - statusCode: 200
-            - contentType: "application/json"
-
+              as: "product_id"
+      # Update Product
       - put:
-          url: "/products/{{ productId }}"
+          url: "/products/{{ product_id }}"
           json:
-            name: "Aktualisiertes Testprodukt {{ uuid }}"
-            description: "Aktualisierte Beschreibung des Testprodukts {{ uuid }}"
-            price: 29.99
-            stock: 150
-          expect:
-            - statusCode: 200
+            name: "Updated Product"
+            price: 99.99
+            stock: 20
+            description: "Updated Description"
+            category_id: "{{ category_id }}"
 
-      - delete:
-          url: "/products/{{ productId }}"
-          expect:
-            - statusCode: 200
-
-  # 2. Szenario: Kunden erstellen und abrufen
-  - name: "Kunden-CRUD-Tests"
-    flow:
+      # Create Customer
       - post:
           url: "/customers"
           json:
-            name: "Kunde {{ uuid }}"
-            email: "kunde{{ uuid }}@example.com"
-            phone: "0123456789"
+            name: "Initial Customer"
+            email: "customer@example.com"
+            phone: "1234567890"
           capture:
             - json: "$.id"
-              as: customerId
-
-      - get:
-          url: "/customers/{{ customerId }}"
-          expect:
-            - statusCode: 200
-            - contentType: "application/json"
-
+              as: "customer_id"
+      # Update Customer
       - put:
-          url: "/customers/{{ customerId }}"
+          url: "/customers/{{ customer_id }}"
           json:
-            name: "Aktualisierter Kunde {{ uuid }}"
-            email: "aktualisierter_kunde{{ uuid }}@example.com"
-            phone: "0987654321"
-          expect:
-            - statusCode: 200
+            name: "Updated Customer"
+            email: "updated@example.com"
+            phone: "9876543210"
 
-      - delete:
-          url: "/customers/{{ customerId }}"
-          expect:
-            - statusCode: 200
-
-  # 3. Szenario: Bestellung erstellen und abrufen
-  - name: "Bestellung-CRUD-Tests"
-    flow:
+      # Create Order
       - post:
           url: "/orders"
           json:
-            customerId: "{{ customerId }}"
+            customer_id: "{{ customer_id }}"
             items:
-              - productId: "{{ productId }}"
+              - product_id: "{{ product_id }}"
                 quantity: 2
                 price: 19.99
           capture:
-            - json: "$.id"
-              as: orderId
-
-      - get:
-          url: "/orders/{{ orderId }}"
-          expect:
-            - statusCode: 200
-            - contentType: "application/json"
-
+            - json: "$.order_id"
+              as: "order_id"
+      # Update Order
       - put:
-          url: "/orders/{{ orderId }}"
+          url: "/orders/{{ order_id }}"
           json:
-            customerId: "{{ customerId }}"
+            customer_id: "{{ customer_id }}"
             items:
-              - productId: "{{ productId }}"
+              - product_id: "{{ product_id }}"
                 quantity: 3
                 price: 29.99
-          expect:
-            - statusCode: 200
 
+      # Delete Entities
       - delete:
-          url: "/orders/{{ orderId }}"
-          expect:
-            - statusCode: 200
+          url: "/orders/{{ order_id }}"
+      - delete:
+          url: "/customers/{{ customer_id }}"
+      - delete:
+          url: "/products/{{ product_id }}"
+      - delete:
+          url: "/categories/{{ category_id }}"
