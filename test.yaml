@@ -1,0 +1,180 @@
+config:
+  target: http://localhost:8000
+  phases:
+    - duration: 60
+      arrivalRate: 5
+  plugins:
+    expect: {}
+scenarios:
+  # Create a Category
+  - name: Create Category
+    flow:
+      - post:
+          url: /categories
+          headers:
+            Content-Type: application/json
+          json:
+            name: "Category_Example_{{ $uuid }}"
+          capture:
+            - json: "$.id"
+              as: category_id
+          expect:
+            statusCode: 201
+
+  # Create a Product
+  - name: Create Product
+    flow:
+      - function: |
+          if (!vars.category_id) throw new Error('Missing category_id, skipping product creation.');
+      - post:
+          url: /products
+          headers:
+            Content-Type: application/json
+          json:
+            name: "Product_Example_{{ $uuid }}"
+            description: "A sample product description."
+            price: 49.99
+            stock: 100
+            category_id: "{{ category_id }}"
+          capture:
+            - json: "$.id"
+              as: product_id
+          expect:
+            statusCode: 201
+
+  # Create a Customer
+  - name: Create Customer
+    flow:
+      - post:
+          url: /customers
+          headers:
+            Content-Type: application/json
+          json:
+            name: "John Doe {{ $uuid }}"
+            email: "johndoe_{{ $uuid }}@example.com"
+            phone: "+1234567890"
+          capture:
+            - json: "$.id"
+              as: customer_id
+          expect:
+            statusCode: 201
+
+  # Create an Order
+  - name: Create Order
+    flow:
+      - function: |
+          if (!vars.customer_id || !vars.product_id) throw new Error('Missing customer_id or product_id, skipping order creation.');
+      - post:
+          url: /orders
+          headers:
+            Content-Type: application/json
+          json:
+            customer_id: "{{ customer_id }}"
+            products:
+              - id: "{{ product_id }}"
+                quantity: 2
+                price: 49.99
+          capture:
+            - json: "$.id"
+              as: order_id
+          expect:
+            statusCode: 201
+
+  # Get Order Report for Customer
+  - name: Get Order Report for Customer
+    flow:
+      - function: |
+          if (!vars.customer_id) throw new Error('Missing customer_id, skipping order report.');
+      - get:
+          url: /orders/customer/{{ customer_id }}/report
+          headers:
+            Content-Type: application/json
+          expect:
+            statusCode: 200
+
+  # Full Test Flow
+  - name: Full Test Flow
+    flow:
+      - function: |
+          // Create a category
+          vars.category_name = `Category_Example_${Math.random().toString(36).substring(2, 8)}`;
+      - post:
+          url: /categories
+          headers:
+            Content-Type: application/json
+          json:
+            name: "{{ category_name }}"
+          capture:
+            - json: "$.id"
+              as: category_id
+          expect:
+            statusCode: 201
+
+      - function: |
+          if (!vars.category_id) throw new Error('Failed to capture category_id.');
+
+      # Create a product linked to the category
+      - post:
+          url: /products
+          headers:
+            Content-Type: application/json
+          json:
+            name: "Product_Example_{{ $uuid }}"
+            description: "A sample product description."
+            price: 49.99
+            stock: 100
+            category_id: "{{ category_id }}"
+          capture:
+            - json: "$.id"
+              as: product_id
+          expect:
+            statusCode: 201
+
+      - function: |
+          if (!vars.product_id) throw new Error('Failed to capture product_id.');
+
+      # Create a customer
+      - post:
+          url: /customers
+          headers:
+            Content-Type: application/json
+          json:
+            name: "John Doe {{ $uuid }}"
+            email: "johndoe_{{ $uuid }}@example.com"
+            phone: "+1234567890"
+          capture:
+            - json: "$.id"
+              as: customer_id
+          expect:
+            statusCode: 201
+
+      - function: |
+          if (!vars.customer_id) throw new Error('Failed to capture customer_id.');
+
+      # Create an order linked to the customer and product
+      - post:
+          url: /orders
+          headers:
+            Content-Type: application/json
+          json:
+            customer_id: "{{ customer_id }}"
+            products:
+              - id: "{{ product_id }}"
+                quantity: 2
+                price: 49.99
+          capture:
+            - json: "$.id"
+              as: order_id
+          expect:
+            statusCode: 201
+
+      - function: |
+          if (!vars.order_id) throw new Error('Failed to capture order_id.');
+
+      # Get the order report for the customer
+      - get:
+          url: /orders/customer/{{ customer_id }}/report
+          headers:
+            Content-Type: application/json
+          expect:
+            statusCode: 200

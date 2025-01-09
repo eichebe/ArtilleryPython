@@ -1,0 +1,98 @@
+config:
+  target: http://localhost:8000
+  phases:
+    - duration: 60
+      arrivalRate: 5
+  plugins:
+    expect: {}
+scenarios:
+  - name: Create Order with Dependencies
+    flow:
+      # Step 1: Create a Category
+      - post:
+          url: /categories
+          headers:
+            Content-Type: application/json
+          json:
+            name: "Category_Example_{{ $uuid }}" # Unique category name
+          capture:
+            - json: "$.id"
+              as: category_id # Save the category ID for product creation
+          expect:
+            statusCode: 201
+
+      - function: |
+          if (!vars.category_id) {
+            throw new Error('Failed to capture category_id, cannot proceed.');
+          }
+
+      # Step 2: Create a Product
+      - post:
+          url: /products
+          headers:
+            Content-Type: application/json
+          json:
+            name: "Product_Example_{{ $uuid }}" # Unique product name
+            description: "A sample product linked to a category."
+            price: 49.99
+            stock: 100
+            category_id: "{{ category_id }}" # Use the captured category_id
+          capture:
+            - json: "$.id"
+              as: product_id # Save the product ID for order creation
+          expect:
+            statusCode: 201
+
+      - function: |
+          if (!vars.product_id) {
+            throw new Error('Failed to capture product_id, cannot proceed.');
+          }
+
+      # Step 3: Create a Customer
+      - post:
+          url: /customers
+          headers:
+            Content-Type: application/json
+          json:
+            name: "John Doe {{ $uuid }}" # Unique customer name
+            email: "johndoe_{{ $uuid }}@example.com"
+            phone: "+1234567890"
+          capture:
+            - json: "$.id"
+              as: customer_id # Save the customer ID for order creation
+          expect:
+            statusCode: 201
+
+      - function: |
+          if (!vars.customer_id) {
+            throw new Error('Failed to capture customer_id, cannot proceed.');
+          }
+
+      # Step 4: Create an Order
+      - post:
+          url: /orders
+          headers:
+            Content-Type: application/json
+          json:
+            customer_id: "{{ customer_id }}" # Use the captured customer_id
+            products:
+              - id: "{{ product_id }}" # Use the captured product_id
+                quantity: 2
+                price: 49.99
+          capture:
+            - json: "$.id"
+              as: order_id # Save the order ID for validation (optional)
+          expect:
+            statusCode: 201
+
+      # Step 5: Validate the Order (Optional)
+      - function: |
+          if (!vars.order_id) {
+            throw new Error('Failed to capture order_id, cannot validate order.');
+          }
+      - get:
+          url: /orders/{{ order_id }}
+          headers:
+            Content-Type: application/json
+          expect:
+            statusCode: 200
