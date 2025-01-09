@@ -20,11 +20,10 @@ from .services import (
     create_order,
     update_product,
     update_customer,
-    update_order,
     delete_product,
     delete_customer,
     delete_order,
     get_products,
     get_customers,
-    get_orders_with_details,
+    get_customer_order_report
 )

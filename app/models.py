@@ -27,6 +27,7 @@ class Product(Base):
 # Customer model
 class Customer(Base):
     __tablename__ = "customers"
+
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     email = Column(String, unique=True, index=True)
@@ -37,6 +38,7 @@ class Customer(Base):
 # Order model
 class Order(Base):
     __tablename__ = "orders"
+
     id = Column(Integer, primary_key=True, index=True)
     customer_id = Column(Integer, ForeignKey("customers.id"))
     total_price = Column(Float)
@@ -44,9 +46,11 @@ class Order(Base):
     customer = relationship("Customer", back_populates="orders")
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
 
+
 # OrderItem model
 class OrderItem(Base):
     __tablename__ = "order_items"
+
     id = Column(Integer, primary_key=True, index=True)
     order_id = Column(Integer, ForeignKey("orders.id"))
     product_id = Column(Integer, ForeignKey("products.id"))

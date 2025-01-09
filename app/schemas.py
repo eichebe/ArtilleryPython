@@ -67,34 +67,47 @@ class Customer(CustomerBase):
     class Config:
         from_attributes = True
 
-#OrderItems Scema
-class OrderItemBase(BaseModel):
+#OrderItems Schema
+class OrderItem(BaseModel):
     product_id: int
-    quantity: int = Field(..., gt=0)
-    price: float = Field(..., ge=0)
-
-class OrderItemCreate(OrderItemBase):
-    pass
-
-class OrderItemUpdate(BaseModel):
-    product_id: Optional[int]
-    quantity: Optional[int] = Field(None, gt=0)
-    price: Optional[float] = Field(None, ge=0)
+    quantity: int
+    price: float
 
     class Config:
         from_attributes = True
 
-class OrderItem(OrderItemBase):
-    id: int
+
+class OrderItemCreate(BaseModel):
+    pass
+
+class OrderItemUpdate(BaseModel):
+    product_id: Optional[int]
+    quantity: Optional[int]
+    price: Optional[float]
+
+    class Config:
+        from_attributes = True
+
+
+class OrderUpdate(BaseModel):
+    customer_id: Optional[int]
+    items: Optional[List[OrderItemUpdate]]
 
     class Config:
         from_attributes = True
 
 #Order Schema
-class OrderBase(BaseModel):
+class Order(BaseModel):
+    id: int
     customer_id: int
+    total_price: float
+    items: List[OrderItem]
 
-class OrderCreate(OrderBase):
+    class Config:
+        from_attributes = True
+
+
+class OrderCreate(BaseModel):
     items: List[OrderItemCreate]
 
 class OrderUpdate(BaseModel):
@@ -105,8 +118,9 @@ class OrderUpdate(BaseModel):
     class Config:
         from_attributes = True
 
-class Order(OrderBase):
+class Order(BaseModel):
     id: int
+    customer_id: int
     total_price: float
     items: List[OrderItem]
 

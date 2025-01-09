@@ -1,0 +1,31 @@
+{
+  "config": {
+    "target": "http://localhost:8000",
+    "phases": [
+      {
+        "duration": 60,
+        "arrivalRate": 5
+      }
+    ]
+  },
+  "scenarios": [
+    {
+      "flow": [
+        {
+          "post": {
+            "url": "/orders",
+            "json": {
+              "customer_id": "{{ customer_id }}",
+              "products": [
+                {
+                  "id": "{{ product_id }}",
+                  "quantity": "{{ quantity }}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

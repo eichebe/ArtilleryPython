@@ -5,8 +5,8 @@ from typing import List
 import logging
 from fastapi.middleware.cors import CORSMiddleware
 
-from . import models, schemas
-from . import services
+from app import models, schemas
+from app import services
 
 # Database setup
 DATABASE_URL = "mysql+pymysql://root:@localhost:3306/loadtest_db"
@@ -104,22 +104,30 @@ def read_customers(skip: int = 0, limit: int = 100, db: Session = Depends(get_db
 def read_customer(customer_id: int, db: Session = Depends(get_db)):
     return services.get_customer_by_id(db, customer_id)
 
+@app.put("/customers/{customer_id}", response_model=schemas.Customer)
+def update_customer_route(
+    customer_id: int, 
+    customer: schemas.CustomerUpdate, 
+    db: Session = Depends(get_db)
+):
+    updated_customer = services.update_customer(db=db, customer_id=customer_id, customer=customer)
+    if not updated_customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    return updated_customer
+
+
 @app.delete("/customers/{customer_id}")
 def delete_customer(customer_id: int, db: Session = Depends(get_db)):
     return services.delete_customer(db=db, customer_id=customer_id)
 
 # Order Routes
 @app.post("/orders", response_model=schemas.Order)
-def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
-    return services.create_order(db=db, order=order)
+def create_order(order_data: dict, db: Session = Depends(get_db)):
+    return services.create_order(db=db, order_data=order_data)
 
 @app.get("/orders/{order_id}", response_model=schemas.Order)
 def read_order(order_id: int, db: Session = Depends(get_db)):
     return services.get_order_by_id(db, order_id)
-
-@app.get("/orders/detailed")
-def read_orders_with_details(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return services.get_orders_with_details(db=db, skip=skip, limit=limit)
 
 @app.delete("/orders/{order_id}")
 def delete_order(order_id: int, db: Session = Depends(get_db)):
@@ -132,3 +140,7 @@ def update_order_route(order_id: int, order: schemas.OrderUpdate, db: Session = 
 @app.get("/orders/report/{customer_id}")
 def generate_order_report(customer_id: int, db: Session = Depends(get_db)):
     return services.generate_customer_order_report(db=db, customer_id=customer_id)
+
+@app.get("/orders/customer/{customer_id}/report", response_model=List[schemas.Order])
+def get_customer_order_report(customer_id: int, db: Session = Depends(get_db)):
+    return services.get_customer_order_report(db=db, customer_id=customer_id)

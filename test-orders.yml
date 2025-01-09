@@ -1,0 +1,49 @@
+config:
+  target: "http://localhost:8000"  # Replace with the actual base URL of your application
+  phases:
+    - duration: 60                # Run the test for 60 seconds
+      arrivalRate: 5              # 5 new virtual users per second
+  payload:
+    path: "./order_payload.csv"   # Dynamic data for the payload
+    fields:
+      - customer_id
+      - product_id
+      - quantity
+  variables:
+    order_ids: []                 # A variable to store created order IDs
+
+scenarios:
+  - name: "Create Order Test"
+    flow:
+      - post:
+          url: "/orders"
+          json:
+            customer_id: "{{ customer_id }}"
+            products:
+              - id: "{{ product_id }}"
+                quantity: "{{ quantity }}"
+          capture:
+            - json: "$.id"        # Capture the ID of the created order
+              as: "order_id"
+          expect:
+            - statusCode: 201     # Expect a successful creation response
+      - function:
+          js: |
+            console.log("Created order ID:", vars.order_id);
+            vars.order_ids.push(vars.order_id);  # Store order ID in the list
+
+  - name: "Cleanup Phase"
+    flow:
+      - function:
+          js: |
+            console.log("Starting cleanup of orders...");
+      - loop:
+          foreach: "vars.order_ids"
+          do:
+            - delete:
+                url: "/orders/{{ $loopElement }}"
+                expect:
+                  - statusCode: 200   # Expect a successful deletion response
+            - function:
+                js: |
+                  console.log("Deleted order ID:", $loopElement);
