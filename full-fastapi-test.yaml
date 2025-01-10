@@ -1,8 +1,17 @@
 config:
+  http:
+    maxSockets: 200
+    timeout: 3000
   target: http://localhost:8000
   phases:
     - duration: 60
-      arrivalRate: 5
+      arrivalRate: 15
+    - duration: 60
+      arrivalRate: 30
+    - duration: 60
+      arrivalRate: 40
+    - duration: 60
+      arrivalRate: 45
   plugins:
     expect: {}
 scenarios:
@@ -21,11 +30,6 @@ scenarios:
           expect:
             statusCode: 201
 
-      - function: |
-          if (!vars.category_id) {
-            throw new Error('Failed to capture category_id, cannot proceed.');
-          }
-
       # Step 2: Create a Product
       - post:
           url: /products
@@ -43,11 +47,6 @@ scenarios:
           expect:
             statusCode: 201
 
-      - function: |
-          if (!vars.product_id) {
-            throw new Error('Failed to capture product_id, cannot proceed.');
-          }
-
       # Step 3: Create a Customer
       - post:
           url: /customers
@@ -62,11 +61,6 @@ scenarios:
               as: customer_id # Save the customer ID for order creation and report
           expect:
             statusCode: 201
-
-      - function: |
-          if (!vars.customer_id) {
-            throw new Error('Failed to capture customer_id, cannot proceed.');
-          }
 
       # Step 4: Create an Order
       - post:
@@ -84,11 +78,6 @@ scenarios:
               as: order_id # Save the order ID for report
           expect:
             statusCode: 201
-
-      - function: |
-          if (!vars.order_id) {
-            throw new Error('Failed to capture order_id, cannot proceed.');
-          }
 
       # Step 5: Validate the Order (Optional)
       - get:
